@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: open-log-investigator
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
