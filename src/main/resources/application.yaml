@@ -4,3 +4,7 @@ spring:
   ai:
     openai:
       api-key: ${OPENAI_API_KEY}
+
+investigator:
+  logs:
+    file-path: classpath:sample-logs/payment-logs.ndjson
