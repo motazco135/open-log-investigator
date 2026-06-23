@@ -2,6 +2,7 @@ package io.github.motazco135.investigator.api;
 
 import io.github.motazco135.investigator.application.usecase.InvestigationUseCase;
 import io.github.motazco135.investigator.domain.model.InvestigationResult;
+import io.github.motazco135.investigator.domain.model.InvestigationStatus;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ class InvestigationControllerTest {
         Mockito.when(investigationUseCase.investigate(any()))
                 .thenReturn(new InvestigationResult(
                         "corr-123",
+                        InvestigationStatus.FAILED,
                         "The transaction contains error events and requires investigation.",
                         "core-banking-api",
                         "Core banking API timeout",

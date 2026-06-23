@@ -2,6 +2,7 @@ package io.github.motazco135.investigator.infra.llm;
 
 import io.github.motazco135.investigator.application.service.InvestigationPromptBuilder;
 import io.github.motazco135.investigator.domain.model.InvestigationResult;
+import io.github.motazco135.investigator.domain.model.InvestigationStatus;
 import io.github.motazco135.investigator.domain.model.TimelineEvent;
 import io.github.motazco135.investigator.domain.port.LlmClientPort;
 import org.springframework.ai.chat.client.ChatClient;
@@ -24,8 +25,8 @@ public final class OpenAiLlmAdapter implements LlmClientPort {
     }
 
     @Override
-    public InvestigationResult investigate(String correlationId,String question,List<TimelineEvent> timeline) {
-        var prompt = promptBuilder.build(correlationId, question, timeline);
+    public InvestigationResult investigate(String correlationId, InvestigationStatus status, String question, List<TimelineEvent> timeline) {
+        var prompt = promptBuilder.build(correlationId, status, question, timeline);
         var response = chatClient.prompt()
                 .user(prompt)
                 .call()

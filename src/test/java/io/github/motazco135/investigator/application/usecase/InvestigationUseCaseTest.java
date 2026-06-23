@@ -1,10 +1,8 @@
 package io.github.motazco135.investigator.application.usecase;
 
+import io.github.motazco135.investigator.application.service.InvestigationStatusAnalyzer;
 import io.github.motazco135.investigator.application.service.TimelineBuilder;
-import io.github.motazco135.investigator.domain.model.InvestigationRequest;
-import io.github.motazco135.investigator.domain.model.InvestigationResult;
-import io.github.motazco135.investigator.domain.model.LogEntry;
-import io.github.motazco135.investigator.domain.model.TimelineEvent;
+import io.github.motazco135.investigator.domain.model.*;
 import io.github.motazco135.investigator.domain.port.LlmClientPort;
 import io.github.motazco135.investigator.domain.port.LogSourcePort;
 import org.junit.jupiter.api.Test;
@@ -19,8 +17,9 @@ class InvestigationUseCaseTest {
     @Test
     void shouldReturnLlmInvestigationResult() {
         var useCase = new InvestigationUseCase(
-                new TimelineBuilder(),
                 new FakeLogSourcePort(sampleLogs()),
+                new TimelineBuilder(),
+                new InvestigationStatusAnalyzer(),
                 new FakeLlmClientPort()
         );
 
@@ -35,8 +34,9 @@ class InvestigationUseCaseTest {
     @Test
     void shouldReturnNoLogsFoundWhenCorrelationIdDoesNotExist() {
         var useCase = new InvestigationUseCase(
+                new FakeLogSourcePort(sampleLogs()),
                 new TimelineBuilder(),
-                new FakeLogSourcePort(List.of()),
+                new InvestigationStatusAnalyzer(),
                 new FakeLlmClientPort()
         );
 
@@ -51,9 +51,10 @@ class InvestigationUseCaseTest {
     @Test
     void shouldFallbackWhenLlmFails() {
         var useCase = new InvestigationUseCase(
-                new TimelineBuilder(),
                 new FakeLogSourcePort(sampleLogs()),
-                new FailingLlmClientPort()
+                new TimelineBuilder(),
+                new InvestigationStatusAnalyzer(),
+                new FakeLlmClientPort()
         );
 
         var result = useCase.investigate(
@@ -85,7 +86,6 @@ class InvestigationUseCaseTest {
     }
 
     private record FakeLogSourcePort(List<LogEntry> logs) implements LogSourcePort {
-
         @Override
         public List<LogEntry> findByCorrelationId(String correlationId) {
             return logs.stream()
@@ -99,11 +99,13 @@ class InvestigationUseCaseTest {
         @Override
         public InvestigationResult investigate(
                 String correlationId,
+                InvestigationStatus status,
                 String question,
                 List<TimelineEvent> timeline
         ) {
             return new InvestigationResult(
                     correlationId,
+                    InvestigationStatus.FAILED,
                     "The transaction failed during core banking posting.",
                     "core-banking-api",
                     "Core banking API timeout",
@@ -114,10 +116,10 @@ class InvestigationUseCaseTest {
     }
 
     private static final class FailingLlmClientPort implements LlmClientPort {
-
         @Override
         public InvestigationResult investigate(
                 String correlationId,
+                InvestigationStatus status,
                 String question,
                 List<TimelineEvent> timeline
         ) {

@@ -35,6 +35,7 @@ public class InvestigationController {
     private InvestigationApiResponse toApiResponse(InvestigationResult result) {
         return new InvestigationApiResponse(
                 result.correlationId(),
+                result.status(),
                 result.summary(),
                 result.failurePoint(),
                 result.rootCause(),

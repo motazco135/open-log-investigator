@@ -4,6 +4,7 @@ import java.util.List;
 
 public record InvestigationResult(
         String correlationId,
+        InvestigationStatus status,
         String summary,
         String failurePoint,
         String rootCause,
