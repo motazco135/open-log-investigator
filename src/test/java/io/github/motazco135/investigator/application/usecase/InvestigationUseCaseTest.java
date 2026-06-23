@@ -2,7 +2,10 @@ package io.github.motazco135.investigator.application.usecase;
 
 import io.github.motazco135.investigator.application.service.TimelineBuilder;
 import io.github.motazco135.investigator.domain.model.InvestigationRequest;
+import io.github.motazco135.investigator.domain.model.InvestigationResult;
 import io.github.motazco135.investigator.domain.model.LogEntry;
+import io.github.motazco135.investigator.domain.model.TimelineEvent;
+import io.github.motazco135.investigator.domain.port.LlmClientPort;
 import io.github.motazco135.investigator.domain.port.LogSourcePort;
 import org.junit.jupiter.api.Test;
 
@@ -14,8 +17,56 @@ import static org.assertj.core.api.Assertions.assertThat;
 class InvestigationUseCaseTest {
 
     @Test
-    void shouldReturnFailurePointFromFirstErrorLog() {
-        var logSourcePort = new FakeLogSourcePort(List.of(
+    void shouldReturnLlmInvestigationResult() {
+        var useCase = new InvestigationUseCase(
+                new TimelineBuilder(),
+                new FakeLogSourcePort(sampleLogs()),
+                new FakeLlmClientPort()
+        );
+
+        var result = useCase.investigate(
+                new InvestigationRequest("corr-123", "Why did this fail?")
+        );
+
+        assertThat(result.failurePoint()).isEqualTo("core-banking-api");
+        assertThat(result.rootCause()).isEqualTo("Core banking API timeout");
+    }
+
+    @Test
+    void shouldReturnNoLogsFoundWhenCorrelationIdDoesNotExist() {
+        var useCase = new InvestigationUseCase(
+                new TimelineBuilder(),
+                new FakeLogSourcePort(List.of()),
+                new FakeLlmClientPort()
+        );
+
+        var result = useCase.investigate(
+                new InvestigationRequest("missing-id", "Why did this fail?")
+        );
+
+        assertThat(result.failurePoint()).isEqualTo("UNKNOWN");
+        assertThat(result.rootCause()).isEqualTo("No evidence available");
+    }
+
+    @Test
+    void shouldFallbackWhenLlmFails() {
+        var useCase = new InvestigationUseCase(
+                new TimelineBuilder(),
+                new FakeLogSourcePort(sampleLogs()),
+                new FailingLlmClientPort()
+        );
+
+        var result = useCase.investigate(
+                new InvestigationRequest("corr-123", "Why did this fail?")
+        );
+
+        assertThat(result.failurePoint()).isEqualTo("core-banking-api");
+        assertThat(result.rootCause())
+                .isEqualTo("Core banking API timeout while posting transaction");
+    }
+
+    private List<LogEntry> sampleLogs() {
+        return List.of(
                 new LogEntry(
                         Instant.parse("2026-06-21T10:30:00Z"),
                         "corr-123",
@@ -23,7 +74,6 @@ class InvestigationUseCaseTest {
                         "INFO",
                         "Payment request received"
                 ),
-
                 new LogEntry(
                         Instant.parse("2026-06-21T10:30:03Z"),
                         "corr-123",
@@ -31,35 +81,47 @@ class InvestigationUseCaseTest {
                         "ERROR",
                         "Core banking API timeout while posting transaction"
                 )
-        ));
-
-        var useCase = new InvestigationUseCase(new TimelineBuilder(),logSourcePort);
-
-        var result = useCase.investigate(
-                new InvestigationRequest("corr-123", "Why did this fail?")
         );
-        assertThat(result.correlationId()).isEqualTo("corr-123");
-        assertThat(result.failurePoint()).isEqualTo("core-banking-api");
-        assertThat(result.rootCause()).isEqualTo("Core banking API timeout while posting transaction");
-    }
-
-    @Test
-    void shouldReturnNoLogsFoundWhenCorrelationIdDoesNotExist() {
-        var useCase = new InvestigationUseCase( new TimelineBuilder(),new FakeLogSourcePort(List.of()));
-        var result = useCase.investigate(
-                new InvestigationRequest("missing-id", "Why did this fail?")
-        );
-        assertThat(result.failurePoint()).isEqualTo("UNKNOWN");
-        assertThat(result.rootCause()).isEqualTo("No evidence available");
     }
 
     private record FakeLogSourcePort(List<LogEntry> logs) implements LogSourcePort {
+
         @Override
         public List<LogEntry> findByCorrelationId(String correlationId) {
             return logs.stream()
                     .filter(log -> log.correlationId().equals(correlationId))
                     .toList();
         }
+    }
 
+    private static final class FakeLlmClientPort implements LlmClientPort {
+
+        @Override
+        public InvestigationResult investigate(
+                String correlationId,
+                String question,
+                List<TimelineEvent> timeline
+        ) {
+            return new InvestigationResult(
+                    correlationId,
+                    "The transaction failed during core banking posting.",
+                    "core-banking-api",
+                    "Core banking API timeout",
+                    List.of("Core banking API timeout while posting transaction"),
+                    List.of("Check core banking API availability.")
+            );
+        }
+    }
+
+    private static final class FailingLlmClientPort implements LlmClientPort {
+
+        @Override
+        public InvestigationResult investigate(
+                String correlationId,
+                String question,
+                List<TimelineEvent> timeline
+        ) {
+            throw new IllegalStateException("LLM unavailable");
+        }
     }
 }
