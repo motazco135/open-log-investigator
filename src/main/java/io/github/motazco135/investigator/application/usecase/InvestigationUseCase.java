@@ -61,7 +61,8 @@ public final class InvestigationUseCase {
                 "UNKNOWN",
                 "No evidence available",
                 List.of(),
-                List.of("Verify that the correlation ID is correct.")
+                List.of("Verify that the correlation ID is correct."),
+                List.of()
         );
     }
 
@@ -82,7 +83,8 @@ public final class InvestigationUseCase {
                     "UNKNOWN",
                     "Insufficient evidence",
                     timeline.stream().map(TimelineEvent::description).toList(),
-                    List.of("Search for additional logs using transaction ID, trace ID, or downstream reference.")
+                    List.of("Search for additional logs using transaction ID, trace ID, or downstream reference."),
+                    timeline
             );
         }
 
@@ -94,7 +96,8 @@ public final class InvestigationUseCase {
                     "NONE",
                     "No error events found",
                     timeline.stream().map(TimelineEvent::description).toList(),
-                    List.of("Review the full timeline if business status is still unclear.")
+                    List.of("Review the full timeline if business status is still unclear."),
+                    timeline
             );
         }
 
@@ -107,7 +110,8 @@ public final class InvestigationUseCase {
                 firstError.service(),
                 firstError.description(),
                 errorEvents.stream().map(TimelineEvent::description).toList(),
-                List.of("Review logs around " + firstError.service() + ".")
+                List.of("Review logs around " + firstError.service() + "."),
+                timeline
         );
     }
 }

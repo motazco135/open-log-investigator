@@ -54,7 +54,7 @@ class InvestigationUseCaseTest {
                 new FakeLogSourcePort(sampleLogs()),
                 new TimelineBuilder(),
                 new InvestigationStatusAnalyzer(),
-                new FakeLlmClientPort()
+                new FailingLlmClientPort()
         );
 
         var result = useCase.investigate(
@@ -62,8 +62,7 @@ class InvestigationUseCaseTest {
         );
 
         assertThat(result.failurePoint()).isEqualTo("core-banking-api");
-        assertThat(result.rootCause())
-                .isEqualTo("Core banking API timeout while posting transaction");
+        assertThat(result.rootCause()).isEqualTo("Core banking API timeout while posting transaction");
     }
 
     private List<LogEntry> sampleLogs() {
@@ -110,7 +109,8 @@ class InvestigationUseCaseTest {
                     "core-banking-api",
                     "Core banking API timeout",
                     List.of("Core banking API timeout while posting transaction"),
-                    List.of("Check core banking API availability.")
+                    List.of("Check core banking API availability."),
+                    timeline
             );
         }
     }

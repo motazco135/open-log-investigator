@@ -40,7 +40,8 @@ public class InvestigationController {
                 result.failurePoint(),
                 result.rootCause(),
                 result.evidence(),
-                result.recommendations()
+                result.recommendations(),
+                result.timeline()
         );
     }
 }

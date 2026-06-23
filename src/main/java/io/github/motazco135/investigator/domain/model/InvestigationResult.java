@@ -9,6 +9,7 @@ public record InvestigationResult(
         String failurePoint,
         String rootCause,
         List<String> evidence,
-        List<String> recommendations
+        List<String> recommendations,
+        List<TimelineEvent> timeline
 ) {
 }

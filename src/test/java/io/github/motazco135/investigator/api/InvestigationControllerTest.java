@@ -37,7 +37,8 @@ class InvestigationControllerTest {
                         "core-banking-api",
                         "Core banking API timeout",
                         List.of("Core banking API timeout"),
-                        List.of("Review logs around core-banking-api.")
+                        List.of("Review logs around core-banking-api."),
+                        List.of()
                 ));
 
         mockMvc.perform(post("/api/investigations")

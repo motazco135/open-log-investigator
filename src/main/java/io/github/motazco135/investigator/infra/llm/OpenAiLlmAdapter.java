@@ -25,18 +25,32 @@ public final class OpenAiLlmAdapter implements LlmClientPort {
     }
 
     @Override
-    public InvestigationResult investigate(String correlationId, InvestigationStatus status, String question, List<TimelineEvent> timeline) {
+    public InvestigationResult investigate(
+            String correlationId,
+            InvestigationStatus status,
+            String question,
+            List<TimelineEvent> timeline) {
         var prompt = promptBuilder.build(correlationId, status, question, timeline);
         var response = chatClient.prompt()
                 .user(prompt)
                 .call()
                 .content();
-        return toInvestigationResult(response);
+        return toInvestigationResult(response,timeline);
     }
 
-    private InvestigationResult toInvestigationResult(String response) {
+    private InvestigationResult toInvestigationResult(String response, List<TimelineEvent> timeline) {
         try {
-            return jsonMapper.readValue(response, InvestigationResult.class);
+            var result =  jsonMapper.readValue(response, InvestigationResult.class);
+            return new InvestigationResult(
+                    result.correlationId(),
+                    result.status(),
+                    result.summary(),
+                    result.failurePoint(),
+                    result.rootCause(),
+                    result.evidence(),
+                    result.recommendations(),
+                    timeline
+            );
         } catch (Exception exception) {
             throw new IllegalStateException("Unable to parse LLM response: " + response, exception);
         }
